@@ -4,7 +4,7 @@ import time
 import json
 
 
-def extract_data(page): #extracts author, title, text and type(prose or poen) from html. Returns a dictionary.
+def extract_data(page): #extracts author, title, text and type(prose or poem) from html. Returns a dictionary.
     parser = BeautifulSoup(page.content, 'html.parser')
 
     author = parser.find('div', class_='autor').text
@@ -33,7 +33,7 @@ def extract_data(page): #extracts author, title, text and type(prose or poen) fr
 data = [] #list to save the data
 
 i = 0
-max_id = 4545 #seems that 4544 is the last text
+max_id = 10 #seems that 4544 is the last text
 while i < max_id: #extracting loop
     url = f'http://arquivopessoa.net/textos/{i}'
     page = requests.get(url)
@@ -51,5 +51,5 @@ while i < max_id: #extracting loop
         print(f'No {i} : Status {page.status_code}')
         i += 1
 
-with open('texts.json', 'w') as texts: #writes data into a json file
+with open('../texts.json', 'w') as texts: #writes data into a json file
     json.dump(data, texts)
