@@ -1,4 +1,3 @@
-import json 
 import regex as re
 
 def get_pair_frequency(tokens, counts = None): #checks for the number of token pairs in the text. Returns dictionary with pair: # of occurrences
@@ -21,7 +20,7 @@ def merge_pair(ids, pair, idx):
 
 class Tokenizer():
     def __init__(self):
-        self.vocab = {idx: bytes([idx]) for idx in range(256)}
+        self.vocab = {idx: bytes([idx]) for idx in range(256)}        
         self.merges = {}
     
     def train(self, vocab_size, text):
@@ -62,9 +61,9 @@ class RegexTokenizer(Tokenizer):
         self.compiled_pattern = re.compile(self.pattern)
         self.merges = {} # (int, int) -> int
         self.vocab = {idx: bytes([idx]) for idx in range(256)} # idx -> bytes
+        self.special = {'<end>': 424242} #assign a integer value to the special token to encode them.
 
     def train(self, text, vocab_size, verbose=False):
-        
         num_merges = vocab_size - 256
 
         text_chunks = re.findall(self.compiled_pattern, text)        
@@ -102,19 +101,36 @@ class RegexTokenizer(Tokenizer):
         return ids
 
     def encode(self, text):
-        # chunks encoded separately and then merged together
-        text_chunks = re.findall(self.compiled_pattern, text)
-
+        #start by encoding special characters
+        special_pattern = "("+ "|".join(token for token in self.special.keys()) +")" #wraps special tokens around "()" to make it a capturing group and be included in the split
+        special_chunks = re.split(special_pattern , text)
         ids = []
 
-        for chunk in text_chunks:
-            chunk_bytes = chunk.encode("utf-8")
-            chunk_ids = self._encode_chunk(chunk_bytes)
-            ids.extend(chunk_ids)
+        for part in special_chunks:
+            if part in self.special.keys():
+                ids.append(self.special[part])
+
+            else:
+                # chunks encoded separately and then merged together
+                text_chunks = re.findall(self.compiled_pattern, part)
+
+                for chunk in text_chunks:
+                    chunk_bytes = chunk.encode("utf-8")
+                    chunk_ids = self._encode_chunk(chunk_bytes)
+                    ids.extend(chunk_ids)
         
         return ids
 
     def decode(self, ids):
-        tokens = b"".join([self.vocab[idx] for idx in ids])
-        text = tokens.decode("utf-8", errors='replace') #translates bytes to characters
+        partial_tokens = []
+        inverse_special = {v:k for k,v in self.special.items()}
+        for idx in ids:
+            if idx in self.vocab:
+                partial_tokens.append(self.vocab[idx])
+            elif idx in inverse_special.keys():
+                partial_tokens.append(inverse_special[idx].encode("utf-8"))
+            else:
+                raise ValueError(f"token {idx} not in vocab")
+        tokens = b"".join(partial_tokens) #ids(list of integers as encoded) -> bytes
+        text = tokens.decode("utf-8", errors='replace') #bytes -> characters
         return text
