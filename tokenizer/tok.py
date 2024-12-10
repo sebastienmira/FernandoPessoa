@@ -61,7 +61,6 @@ class RegexTokenizer(Tokenizer):
         self.compiled_pattern = re.compile(self.pattern)
         self.merges = {} # (int, int) -> int
         self.vocab = {idx: bytes([idx]) for idx in range(256)} # idx -> bytes
-        self.special = {'<end>': 424242} #assign a integer value to the special token to encode them.
 
     def train(self, text, vocab_size, verbose=False):
         num_merges = vocab_size - 256
@@ -101,6 +100,8 @@ class RegexTokenizer(Tokenizer):
         return ids
 
     def encode(self, text):
+        self.special = {'<end>': len(self.vocab)} #assign a integer value to the special token to encode them.
+
         #start by encoding special characters
         special_pattern = "("+ "|".join(token for token in self.special.keys()) +")" #wraps special tokens around "()" to make it a capturing group and be included in the split
         special_chunks = re.split(special_pattern , text)
@@ -122,6 +123,7 @@ class RegexTokenizer(Tokenizer):
         return ids
 
     def decode(self, ids):
+        self.special = {'<end>': len(self.vocab)} #assign a integer value to the special token to encode them.
         partial_tokens = []
         inverse_special = {v:k for k,v in self.special.items()}
         for idx in ids:
